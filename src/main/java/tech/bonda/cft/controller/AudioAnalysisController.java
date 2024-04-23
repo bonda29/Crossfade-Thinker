@@ -16,7 +16,7 @@ public class AudioAnalysisController {
 
     @GetMapping("/{trackId}")
     public AudioAnalysis getAudioAnalysis(@PathVariable String trackId) {
-        return audioAnalysisService.getAudioAnalysis(trackId);
+        return audioAnalysisService.getAudioAnalysis(trackId, true);
     }
 
 //    @GetMapping("/")

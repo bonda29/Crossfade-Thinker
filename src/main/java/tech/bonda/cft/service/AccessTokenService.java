@@ -10,10 +10,12 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @Getter
 @Service
 public class AccessTokenService {
+    Logger logger = Logger.getLogger(AccessTokenService.class.getName());
 
     @Value("${spotify.client.id}")
     private String clientId;
@@ -50,6 +52,7 @@ public class AccessTokenService {
                     .execute()
                     .getAccessToken();
             spotifyApi.setAccessToken(newAccessToken);
+            logger.info("Access token refreshed at " + System.currentTimeMillis() + " to " + spotifyApi.getAccessToken());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             throw new RuntimeException("Failed to get access token", e);
         }

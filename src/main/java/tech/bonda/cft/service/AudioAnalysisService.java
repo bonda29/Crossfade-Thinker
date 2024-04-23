@@ -3,15 +3,12 @@ package tech.bonda.cft.service;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
-import tech.bonda.cft.util.ApiUtil;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -27,17 +24,9 @@ import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
 @Service
 @RequiredArgsConstructor
 public class AudioAnalysisService {
-    //    private final Logger logger = Logger.getLogger(AudioAnalysisService.class.getName());
     private final AccessTokenService accessTokenService;
     private final WebClient webClient;
-//    private SpotifyApi spotifyApi;
-//
-//    @PostConstruct
-//    public void init() {
-//        spotifyApi = new SpotifyApi.Builder()
-//                .setAccessToken(accessTokenService.getAccessToken())
-//                .build();
-//    }
+
 
     public Map<String, AudioAnalysis> getAudioAnalysisForTracks(String playlistId) {
         List<String> trackIds = getTrackIds(playlistId);
@@ -72,17 +61,18 @@ public class AudioAnalysisService {
         return tracks;
     }
 
-    public synchronized AudioAnalysis getAudioAnalysis(String trackId) {
+    public synchronized AudioAnalysis getAudioAnalysis(String trackId, boolean includeSegments) {
         try {
             var analysis = getSpotifyApi().getAudioAnalysisForTrack(trackId)
                     .build()
                     .execute();
 
-            // Clear the segments field to reduce the size of the response
-            Field segmentsField = AudioAnalysis.class.getDeclaredField("segments");
-            segmentsField.setAccessible(true);
-            segmentsField.set(analysis, null);
-
+            if (!includeSegments) {
+                // Clear the segments field to reduce the size of the response
+                Field segmentsField = AudioAnalysis.class.getDeclaredField("segments");
+                segmentsField.setAccessible(true);
+                segmentsField.set(analysis, null);
+            }
             return analysis;
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
@@ -101,7 +91,7 @@ public class AudioAnalysisService {
                     trackIds.parallelStream()
                             .collect(toConcurrentMap(
                                     trackId -> trackId,
-                                    this::getAudioAnalysis,
+                                    trackId -> getAudioAnalysis(trackId, false),
 
                                     // In case of key collision, keep the existing value
                                     (existing, replacement) -> existing
