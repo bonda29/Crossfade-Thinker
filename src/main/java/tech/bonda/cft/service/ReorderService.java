@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-
 public class ReorderService {
 
     private static final double CROSSFADE_DURATION = 12; // seconds

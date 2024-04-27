@@ -9,6 +9,8 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.SpotifyHttpManager;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
+import tech.bonda.cft.models.User;
+import tech.bonda.cft.service.UserService;
 
 import java.io.IOException;
 import java.net.URI;
@@ -18,6 +20,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SpotifyLoginService {
 
+    private final UserService userService;
     @Value("${spotify.redirect.uri}")
     private String redirectUri;
     @Value("${spotify.client.id}")
@@ -29,7 +32,14 @@ public class SpotifyLoginService {
     public Map<String, String> loginUri() {
         final URI uri = spotifyApi.authorizationCodeUri()
 //          .state("x4xkmn9pu3j6ukrs8n")
-                .scope("playlist-modify-private, playlist-modify-public, user-library-modify, playlist-read-private, user-read-private, user-read-email")
+                .scope("""
+                            playlist-modify-private,
+                            playlist-modify-public,
+                            playlist-read-private,
+                            user-library-modify,
+                            user-read-private,
+                            user-read-email
+                        """)
                 .show_dialog(true)
                 .build()
                 .execute();
@@ -52,9 +62,11 @@ public class SpotifyLoginService {
                     .build()
                     .execute();
 
-            return Map.of("token", authorizationCodeCredentials.getAccessToken(),
-                    "refreshToken", authorizationCodeCredentials.getRefreshToken(),
-                    "expiresIn", String.valueOf(authorizationCodeCredentials.getExpiresIn()));
+            User user = userService.getOrCreateUserByTokens(authorizationCodeCredentials.getAccessToken(), authorizationCodeCredentials.getRefreshToken());
+
+            return Map.of("userId", user.getId(),
+                    "accessToken", user.getAccessToken(),
+                    "refreshToken", user.getRefreshToken());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             throw new RuntimeException("Failed to get access token", e);
         }
