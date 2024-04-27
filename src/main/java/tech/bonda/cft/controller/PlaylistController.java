@@ -12,9 +12,9 @@ public class PlaylistController {
     private final PlaylistService playlistService;
 
     @GetMapping("/{playlistId}")
-    public Playlist getPlaylist(@PathVariable String playlistId, @RequestParam(required = false) String fields) {
+    public Playlist getPlaylist(@PathVariable String playlistId) {
 
-        return playlistService.getPlaylist(playlistId, fields);
+        return playlistService.getPlaylist(playlistId);
     }
 
 
