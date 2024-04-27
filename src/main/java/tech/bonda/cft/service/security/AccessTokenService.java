@@ -1,4 +1,4 @@
-package tech.bonda.cft.service;
+package tech.bonda.cft.service.security;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -21,7 +21,6 @@ public class AccessTokenService {
     private String clientId;
     @Value("${spotify.client.secret}")
     private String clientSecret;
-    @Getter
     private SpotifyApi spotifyApi;
 
     @PostConstruct
