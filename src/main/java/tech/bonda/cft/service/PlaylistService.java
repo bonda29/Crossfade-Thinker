@@ -25,7 +25,7 @@ public class PlaylistService {
 
     public Playlist getPlaylist(String playlistId) {
         SpotifyApi spotifyApi = ApiUtil.getSpotifyApi();
-        final String fields = "collaborative, description, external_urls, followers(total), href, id, images(url), name, owner(id), public, snapshot_id, type, uri";
+        final String fields = "collaborative, description, external_urls, followers(total), href, id, images(url), name, owner(id), public, snapshot_id, type, uri"; //without tracks
         try {
             var builder = spotifyApi
                     .getPlaylist(playlistId)
@@ -96,14 +96,38 @@ public class PlaylistService {
 
     public void addTracksToPlaylist(String userId, String playlistId, String[] trackUris) {
         SpotifyApi spotifyApi = ApiUtil.getSpotifyApi(userId);
-        try {
-            var builder = spotifyApi
-                    .addItemsToPlaylist(playlistId, trackUris)
-                    .build();
 
-            builder.execute();
+        List<String[]> trackUrisList = splitArray(trackUris, 100);
+        int position = 0;
+        try {
+            for (String[] trackUrisChunk : trackUrisList) {
+                var builder = spotifyApi
+                        .addItemsToPlaylist(playlistId, trackUrisChunk)
+                        .position(position)
+                        .build();
+
+                position += trackUrisChunk.length;
+
+                builder.execute();
+            }
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             throw new RuntimeException("Failed to add tracks to playlist", e);
         }
+    }
+
+    public List<String[]> splitArray(String[] array, int chunkSize) {
+        int numOfChunks = (int) Math.ceil((double) array.length / chunkSize);
+        List<String[]> arrayOfArrays = new ArrayList<>(numOfChunks);
+
+        for (int i = 0; i < numOfChunks; i++) {
+            int start = i * chunkSize;
+            int length = Math.min(array.length - start, chunkSize);
+
+            String[] temp = new String[length];
+            System.arraycopy(array, start, temp, 0, length);
+            arrayOfArrays.add(temp);
+        }
+
+        return arrayOfArrays;
     }
 }

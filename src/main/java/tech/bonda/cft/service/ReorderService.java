@@ -3,6 +3,7 @@ package tech.bonda.cft.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
+import se.michaelthelin.spotify.model_objects.specification.Playlist;
 
 import java.util.Comparator;
 import java.util.List;
@@ -15,18 +16,17 @@ public class ReorderService {
 
     private static final double CROSSFADE_DURATION = 12; // seconds
     private final AudioAnalysisService audioAnalysisService;
+    private final PlaylistService playlistService;
 
-    public void orderByTempo(String playlistId) {
-        var audioAnalysisMap = audioAnalysisService.getAudioAnalysisForTracks(playlistId);
-        var orderedTrackIds = sortByTempo(audioAnalysisMap);
+    public void orderByTempo(String playlistId, String userId) {
+        Map<String, AudioAnalysis> audioAnalysisMap = audioAnalysisService.getAudioAnalysisForTracks(playlistId);
+        List<String> orderedTrackIds = sortByTempo(audioAnalysisMap);
+        String[] orderedTrackUris = orderedTrackIds.stream()
+                .map(uri -> "spotify:track:" + uri)
+                .toArray(String[]::new);
 
-        for (String trackId : orderedTrackIds) {
-            Float tempo = audioAnalysisMap.get(trackId).getTrack().getTempo();
-            int index = orderedTrackIds.indexOf(trackId);
-
-            System.out.println("Track ID: " + trackId + " Tempo: " + tempo + " is " + index + " in the playlist");
-
-        }
+        Playlist playlist = playlistService.createPlaylist(userId, "Ordered by tempo", "Playlist ordered by tempo", false);
+        playlistService.addTracksToPlaylist(userId, playlist.getId(), orderedTrackUris); //todo: something is wrong here
 
 
     }
