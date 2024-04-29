@@ -17,14 +17,17 @@ public class User {
     private String username;
     private String email;
 
+    @Column(name = "total_followers")
     private Integer totalFollowers;
 
     @ElementCollection
     @Column(name = "image")
-    @CollectionTable(name = "User_images", joinColumns = @JoinColumn(name = "owner_id"))
+    @CollectionTable(name = "user_images", joinColumns = @JoinColumn(name = "owner_id"))
     private List<String> images = new ArrayList<>();
 
+    @Column(name = "access_token", length = 294)
     private String accessToken;
-    private String refreshToken;
 
+    @Column(name = "refresh_token", length = 131)
+    private String refreshToken;
 }

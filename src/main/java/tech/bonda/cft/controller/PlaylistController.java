@@ -3,6 +3,7 @@ package tech.bonda.cft.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
+import tech.bonda.cft.models.payload.request.PlaylistCreateDto;
 import tech.bonda.cft.service.PlaylistService;
 
 @RestController
@@ -17,5 +18,8 @@ public class PlaylistController {
         return playlistService.getPlaylist(playlistId);
     }
 
-
+    @PostMapping("/")
+    public Playlist createPlaylist(@RequestBody PlaylistCreateDto data) {
+        return playlistService.createPlaylist(data.getUserId(), data.getName(), data.getDescription(), data.isPublic());
+    }
 }

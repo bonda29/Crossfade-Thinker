@@ -8,6 +8,7 @@ import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.Paging;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
+import tech.bonda.cft.repositories.UserRepository;
 import tech.bonda.cft.util.ApiUtil;
 
 import java.io.IOException;
@@ -19,6 +20,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PlaylistService {
+    private final UserRepository userRepository;
+    private final UserService userService;
+
     public Playlist getPlaylist(String playlistId) {
         SpotifyApi spotifyApi = ApiUtil.getSpotifyApi();
         final String fields = "collaborative, description, external_urls, followers(total), href, id, images(url), name, owner(id), public, snapshot_id, type, uri";
@@ -75,4 +79,31 @@ public class PlaylistService {
         return tracks;
     }
 
+    public Playlist createPlaylist(String userId, String playlistName, String description, boolean isPublic) {
+        SpotifyApi spotifyApi = ApiUtil.getSpotifyApi(userId);
+        try {
+            var builder = spotifyApi
+                    .createPlaylist(userId, playlistName)
+                    .description(description)
+                    .public_(isPublic)
+                    .build();
+
+            return builder.execute();
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            throw new RuntimeException("Failed to create playlist", e);
+        }
+    }
+
+    public void addTracksToPlaylist(String userId, String playlistId, String[] trackUris) {
+        SpotifyApi spotifyApi = ApiUtil.getSpotifyApi(userId);
+        try {
+            var builder = spotifyApi
+                    .addItemsToPlaylist(playlistId, trackUris)
+                    .build();
+
+            builder.execute();
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            throw new RuntimeException("Failed to add tracks to playlist", e);
+        }
+    }
 }

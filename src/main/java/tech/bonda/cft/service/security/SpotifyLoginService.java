@@ -29,6 +29,15 @@ public class SpotifyLoginService {
     private String clientSecret;
     private SpotifyApi spotifyApi;
 
+    @PostConstruct
+    public void init() {
+        spotifyApi = new SpotifyApi.Builder()
+                .setClientId(clientId)
+                .setClientSecret(clientSecret)
+                .setRedirectUri(SpotifyHttpManager.makeUri(redirectUri))
+                .build();
+    }
+
     public Map<String, String> loginUri() {
         final URI uri = spotifyApi.authorizationCodeUri()
 //          .state("x4xkmn9pu3j6ukrs8n")
@@ -47,26 +56,20 @@ public class SpotifyLoginService {
         return Map.of("uri", uri.toString());
     }
 
-    @PostConstruct
-    public void init() {
-        spotifyApi = new SpotifyApi.Builder()
-                .setClientId(clientId)
-                .setClientSecret(clientSecret)
-                .setRedirectUri(SpotifyHttpManager.makeUri(redirectUri))
-                .build();
-    }
-
     public Map<String, String> authorization(String code) {
         try {
             final AuthorizationCodeCredentials authorizationCodeCredentials = spotifyApi.authorizationCode(code)
                     .build()
                     .execute();
 
-            User user = userService.getOrCreateUserByTokens(authorizationCodeCredentials.getAccessToken(), authorizationCodeCredentials.getRefreshToken());
+            String accessToken = authorizationCodeCredentials.getAccessToken();
+            String refreshToken = authorizationCodeCredentials.getRefreshToken();
 
-            return Map.of("userId", user.getId(),
-                    "accessToken", user.getAccessToken(),
-                    "refreshToken", user.getRefreshToken());
+            User user = userService.getOrCreateUserByTokens(accessToken, refreshToken);
+
+            return Map.of("user_id", user.getId(),
+                    "access_token", user.getAccessToken(),
+                    "refresh_token", user.getRefreshToken());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             throw new RuntimeException("Failed to get access token", e);
         }

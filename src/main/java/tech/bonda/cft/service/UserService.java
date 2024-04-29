@@ -19,8 +19,12 @@ import static java.util.stream.Collectors.toList;
 public class UserService {
     private final UserRepository userRepository;
 
-    public User getUser(String id) {
+    public User getUserById(String id) {
         return userRepository.findById(id).orElse(null);
+    }
+
+    public User getUserByAccessToken(String accessToken) {
+        return userRepository.findByAccessToken(accessToken).orElse(null);
     }
 
     public User getOrCreateUserByTokens(String accessToken, String refreshToken) {
@@ -55,6 +59,4 @@ public class UserService {
 
         return userRepository.save(user);
     }
-
-
 }
