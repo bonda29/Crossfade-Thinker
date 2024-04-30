@@ -3,6 +3,7 @@ package tech.bonda.cft.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
+import tech.bonda.cft.models.payload.dto.PlaylistAnalysisDto;
 import tech.bonda.cft.service.AudioAnalysisService;
 
 import java.util.List;
@@ -19,15 +20,8 @@ public class AudioAnalysisController {
         return audioAnalysisService.getAudioAnalysis(trackId, true);
     }
 
-//    @GetMapping("/")
-//    public List<String> getPlaylistTracks(@RequestParam String playlistId) {
-//        return audioAnalysisService.getTrackIds(playlistId);
-//    }
-//
     @GetMapping("/")
-    public Map<String, AudioAnalysis> getAudioAnalysisForTracks(@RequestParam String playlistId) {
+    public PlaylistAnalysisDto getAudioAnalysisForTracks(@RequestParam String playlistId) {
         return audioAnalysisService.getAudioAnalysisForTracks(playlistId);
     }
-
-
 }

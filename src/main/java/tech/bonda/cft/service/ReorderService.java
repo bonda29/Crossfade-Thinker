@@ -4,8 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -14,20 +16,29 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReorderService {
 
-    private static final double CROSSFADE_DURATION = 12; // seconds
+//    private static final double CROSSFADE_DURATION = 12; // seconds
     private final AudioAnalysisService audioAnalysisService;
     private final PlaylistService playlistService;
 
     public void orderByTempo(String playlistId, String userId) {
-        Map<String, AudioAnalysis> audioAnalysisMap = audioAnalysisService.getAudioAnalysisForTracks(playlistId);
+        var playlistAnalysisDto = audioAnalysisService.getAudioAnalysisForTracks(playlistId);
+
+        Playlist playlist = playlistAnalysisDto.getPlaylist();
+        Map<String, AudioAnalysis> audioAnalysisMap = playlistAnalysisDto.getAudioAnalysisMap();
+
+        Map<String, String> idToUriMap = new HashMap<>();
+        for (PlaylistTrack track : playlist.getTracks().getItems()) {
+            idToUriMap.put(track.getTrack().getId(), track.getTrack().getUri());
+        }
+
         List<String> orderedTrackIds = sortByTempo(audioAnalysisMap);
+
         String[] orderedTrackUris = orderedTrackIds.stream()
-                .map(uri -> "spotify:track:" + uri)
+                .map(idToUriMap::get)
                 .toArray(String[]::new);
 
-        Playlist playlist = playlistService.createPlaylist(userId, "Ordered by tempo", "Playlist ordered by tempo", false);
-        playlistService.addTracksToPlaylist(userId, playlist.getId(), orderedTrackUris); //todo: something is wrong here
-
+        var newPlaylists = playlistService.createPlaylist(userId, playlist.getName() + " reordered", "Reordered by tempo", true);
+        playlistService.addTracksToPlaylist(userId, newPlaylists.getId(), orderedTrackUris);
 
     }
 

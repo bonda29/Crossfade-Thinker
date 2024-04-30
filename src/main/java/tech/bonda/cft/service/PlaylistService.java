@@ -2,6 +2,8 @@ package tech.bonda.cft.service;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.core5.http.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
@@ -20,8 +22,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PlaylistService {
-    private final UserRepository userRepository;
-    private final UserService userService;
+    private static final int TRACKS_LIMIT = 50;
+    private static final int TRACK_URIS_CHUNK_SIZE = 90;
 
     public Playlist getPlaylist(String playlistId) {
         SpotifyApi spotifyApi = ApiUtil.getSpotifyApi();
@@ -54,7 +56,6 @@ public class PlaylistService {
         SpotifyApi spotifyApi = ApiUtil.getSpotifyApi();
         List<PlaylistTrack> tracks = new ArrayList<>();
         int offset = 0;
-        int limit = 50;
 
         try {
             while (true) {
@@ -62,19 +63,19 @@ public class PlaylistService {
                         .getPlaylistsItems(playlistId)
                         .fields("items(track())")
                         .offset(offset)
-                        .limit(limit)
+                        .limit(TRACKS_LIMIT)
                         .build();
 
                 Paging<PlaylistTrack> playlistTrackPaging = builder.execute();
                 if (playlistTrackPaging.getItems().length > 0) {
                     tracks.addAll(Arrays.asList(playlistTrackPaging.getItems()));
-                    offset += limit;
+                    offset += TRACKS_LIMIT;
                 } else {
                     break;
                 }
             }
         } catch (IOException | SpotifyWebApiException | ParseException e) {
-            System.out.println("Error: " + e.getMessage());
+            throw new RuntimeException("Failed to get playlist tracks", e);
         }
         return tracks;
     }
@@ -97,7 +98,8 @@ public class PlaylistService {
     public void addTracksToPlaylist(String userId, String playlistId, String[] trackUris) {
         SpotifyApi spotifyApi = ApiUtil.getSpotifyApi(userId);
 
-        List<String[]> trackUrisList = splitArray(trackUris, 100);
+        List<String[]> trackUrisList = splitArray(trackUris, TRACK_URIS_CHUNK_SIZE);
+
         int position = 0;
         try {
             for (String[] trackUrisChunk : trackUrisList) {

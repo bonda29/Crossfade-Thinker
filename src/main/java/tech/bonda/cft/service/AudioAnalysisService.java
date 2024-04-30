@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
+import se.michaelthelin.spotify.model_objects.specification.Playlist;
+import tech.bonda.cft.models.payload.dto.PlaylistAnalysisDto;
 import tech.bonda.cft.service.security.AccessTokenService;
 
 import java.io.IOException;
@@ -26,40 +28,18 @@ import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
 @RequiredArgsConstructor
 public class AudioAnalysisService {
     private final AccessTokenService accessTokenService;
+    private final PlaylistService playlistService;
     private final WebClient webClient;
 
 
-    public Map<String, AudioAnalysis> getAudioAnalysisForTracks(String playlistId) {
-        List<String> trackIds = getTrackIds(playlistId);
+    public PlaylistAnalysisDto getAudioAnalysisForTracks(String playlistId) {
+        var playlist = playlistService.getPlaylist(playlistId);
+        List<String> trackIds = getTrackIds(playlist);
 
-        return getAudioAnalysis(trackIds);
-    }
+        Map<String, AudioAnalysis> audioAnalysisMap = getAudioAnalysis(trackIds);
 
-    public List<String> getTrackIds(String playlistId) {
-        String token = accessTokenService.getAccessToken();
-        String url = "https://api.spotify.com/v1/playlists/" + playlistId + "?fields=tracks(items(track(id))";
+        return new PlaylistAnalysisDto(playlist, audioAnalysisMap);
 
-        String response = webClient.get()
-                .uri(url)
-                .header("Authorization", "Bearer " + token)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-
-        Gson gson = new Gson();
-        JsonObject jsonObject = gson.fromJson(response, JsonObject.class);
-        JsonArray itemsArray = jsonObject.getAsJsonObject("tracks").getAsJsonArray("items");
-
-        List<String> tracks = new ArrayList<>();
-
-        for (int i = 0; i < itemsArray.size(); i++) {
-            JsonObject trackObject = itemsArray.get(i).getAsJsonObject().getAsJsonObject("track");
-            String id = trackObject.get("id").getAsString();
-
-            tracks.add(id);
-        }
-
-        return tracks;
     }
 
     public synchronized AudioAnalysis getAudioAnalysis(String trackId, boolean includeSegments) {
@@ -103,5 +83,13 @@ public class AudioAnalysisService {
         }
 
         return result;
+    }
+
+    private List<String> getTrackIds(Playlist playlist) {
+        List<String> tracksIds = new ArrayList<>();
+        for (var track : playlist.getTracks().getItems()) {
+            tracksIds.add(track.getTrack().getId());
+        }
+        return tracksIds;
     }
 }
