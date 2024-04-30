@@ -10,7 +10,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
+import tech.bonda.cft.models.AudioAnalysisEntity;
 import tech.bonda.cft.models.payload.dto.PlaylistAnalysisDto;
+import tech.bonda.cft.repositories.AudioAnalysisEntityRepository;
 import tech.bonda.cft.service.security.AccessTokenService;
 
 import java.io.IOException;
@@ -27,6 +29,7 @@ import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
 @Service
 @RequiredArgsConstructor
 public class AudioAnalysisService {
+    private final AudioAnalysisEntityRepository audioAnalysisEntityRepository;
     private final AccessTokenService accessTokenService;
     private final PlaylistService playlistService;
     private final WebClient webClient;
@@ -43,6 +46,10 @@ public class AudioAnalysisService {
     }
 
     public synchronized AudioAnalysis getAudioAnalysis(String trackId, boolean includeSegments) {
+        var audioAnalysisEntity = audioAnalysisEntityRepository.findById(trackId);
+        if (audioAnalysisEntity.isPresent()) {
+            return new Gson().fromJson(audioAnalysisEntity.get().getAudioAnalysisJson(), AudioAnalysis.class);
+        }
         try {
             var analysis = getSpotifyApi().getAudioAnalysisForTrack(trackId)
                     .build()
@@ -54,6 +61,10 @@ public class AudioAnalysisService {
                 segmentsField.setAccessible(true);
                 segmentsField.set(analysis, null);
             }
+
+            AudioAnalysisEntity entity = new AudioAnalysisEntity(trackId, new Gson().toJson(analysis));
+            audioAnalysisEntityRepository.save(entity);
+
             return analysis;
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {

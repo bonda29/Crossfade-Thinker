@@ -11,7 +11,7 @@ public class ReorderController {
     private final ReorderService reorderService;
 
     @GetMapping("/tempo/{playlistId}")
-    public void reorderPlaylist(@PathVariable String playlistId, @RequestParam String userId) {
-        reorderService.orderByTempo(playlistId, userId);
+    public String reorderPlaylist(@PathVariable String playlistId, @RequestParam String userId) {
+        return reorderService.orderByTempo(playlistId, userId);
     }
 }
