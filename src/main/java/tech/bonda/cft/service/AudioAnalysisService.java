@@ -29,7 +29,7 @@ public class AudioAnalysisService {
     private final PlaylistService playlistService;
 
 
-    public PlaylistAnalysisDto getAudioAnalysisForTracks(String userId, String playlistId) {
+    public PlaylistAnalysisDto getAudioAnalysisForPlaylist(String userId, String playlistId) {
         var playlist = playlistService.getPlaylist(userId, playlistId);
         List<String> trackIds = getTrackIds(playlist);
 
@@ -46,7 +46,7 @@ public class AudioAnalysisService {
                     trackIds.parallelStream()
                             .collect(toConcurrentMap(
                                     trackId -> trackId,
-                                    trackId -> getAudioAnalysis(userId, trackId, false),
+                                    trackId -> getAudioAnalysis(userId, trackId),
 
                                     // In case of key collision, keep the existing value
                                     (existing, replacement) -> existing
@@ -59,7 +59,7 @@ public class AudioAnalysisService {
         return result;
     }
 
-    public synchronized AudioAnalysis getAudioAnalysis(String userId, String trackId, boolean includeSegments) {
+    public synchronized AudioAnalysis getAudioAnalysis(String userId, String trackId) {
         var audioAnalysisEntity = audioAnalysisEntityRepository.findById(trackId);
         if (audioAnalysisEntity.isPresent()) {
             return new Gson().fromJson(audioAnalysisEntity.get().getAudioAnalysisJson(), AudioAnalysis.class);
@@ -69,12 +69,10 @@ public class AudioAnalysisService {
                     .build()
                     .execute();
 
-            if (!includeSegments) {
-                // Clear the segments field to reduce the size of the response
-                Field segmentsField = AudioAnalysis.class.getDeclaredField("segments");
-                segmentsField.setAccessible(true);
-                segmentsField.set(analysis, null);
-            }
+            // Clear the segments field to reduce the size of the response
+            Field segmentsField = AudioAnalysis.class.getDeclaredField("segments");
+            segmentsField.setAccessible(true);
+            segmentsField.set(analysis, null);
 
             AudioAnalysisEntity entity = new AudioAnalysisEntity(trackId, new Gson().toJson(analysis));
             audioAnalysisEntityRepository.save(entity);

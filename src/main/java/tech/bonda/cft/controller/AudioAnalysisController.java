@@ -14,11 +14,11 @@ public class AudioAnalysisController {
 
     @GetMapping("/{trackId}")
     public AudioAnalysis getAudioAnalysis(@PathVariable String trackId, @RequestParam String userId) {
-        return audioAnalysisService.getAudioAnalysis(userId, trackId, true);
+        return audioAnalysisService.getAudioAnalysis(userId, trackId);
     }
 
     @GetMapping("/")
     public PlaylistAnalysisDto getAudioAnalysisForTracks(@RequestParam String userId, @RequestParam String playlistId) {
-        return audioAnalysisService.getAudioAnalysisForTracks(userId, playlistId);
+        return audioAnalysisService.getAudioAnalysisForPlaylist(userId, playlistId);
     }
 }

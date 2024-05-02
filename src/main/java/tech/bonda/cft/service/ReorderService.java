@@ -19,7 +19,7 @@ public class ReorderService {
     private final PlaylistService playlistService;
 
     public String orderByTempo(String playlistId, String userId) {
-        var playlistAnalysisDto = audioAnalysisService.getAudioAnalysisForTracks(userId, playlistId);
+        var playlistAnalysisDto = audioAnalysisService.getAudioAnalysisForPlaylist(userId, playlistId);
 
         var playlist = playlistAnalysisDto.getPlaylist();
         Map<String, AudioAnalysis> audioAnalysisMap = playlistAnalysisDto.getAudioAnalysisMap();

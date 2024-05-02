@@ -38,7 +38,7 @@ public class SpotifyLoginService {
                 .build();
     }
 
-    public Map<String, String> loginUri() {
+    public String loginUri() {
         final URI uri = spotifyApi.authorizationCodeUri()
 //          .state("x4xkmn9pu3j6ukrs8n")
                 .scope("""
@@ -53,7 +53,7 @@ public class SpotifyLoginService {
                 .build()
                 .execute();
 
-        return Map.of("uri", uri.toString());
+        return uri.toString();
     }
 
     public Map<String, String> authorization(String code) {
