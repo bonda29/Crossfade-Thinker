@@ -2,16 +2,12 @@ package tech.bonda.cft.service;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.core5.http.ParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.Paging;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
-import tech.bonda.cft.repositories.UserRepository;
-import tech.bonda.cft.util.ApiUtil;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -19,14 +15,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
+
 @Service
 @RequiredArgsConstructor
 public class PlaylistService {
     private static final int TRACKS_LIMIT = 50;
     private static final int TRACK_URIS_CHUNK_SIZE = 90;
 
-    public Playlist getPlaylist(String playlistId) {
-        SpotifyApi spotifyApi = ApiUtil.getSpotifyApi();
+    public Playlist getPlaylist(String userId, String playlistId) {
+        SpotifyApi spotifyApi = getSpotifyApi(userId);
         final String fields = "collaborative, description, external_urls, followers(total), href, id, images(url), name, owner(id), public, snapshot_id, type, uri"; //without tracks
         try {
             var builder = spotifyApi
@@ -34,7 +32,8 @@ public class PlaylistService {
                     .fields(fields)
                     .build();
             Playlist playlist = builder.execute();
-            PlaylistTrack[] trackArr = getPlaylistsItems(playlistId).toArray(new PlaylistTrack[0]);
+            PlaylistTrack[] trackArr = getPlaylistsItems(userId, playlistId)
+                    .toArray(new PlaylistTrack[0]);
 
             Paging<PlaylistTrack> tracks = new Paging.Builder<PlaylistTrack>()
                     .setItems(trackArr)
@@ -52,8 +51,8 @@ public class PlaylistService {
         }
     }
 
-    private List<PlaylistTrack> getPlaylistsItems(String playlistId) {
-        SpotifyApi spotifyApi = ApiUtil.getSpotifyApi();
+    private List<PlaylistTrack> getPlaylistsItems(String userId, String playlistId) {
+        SpotifyApi spotifyApi = getSpotifyApi(userId);
         List<PlaylistTrack> tracks = new ArrayList<>();
         int offset = 0;
 
@@ -81,7 +80,7 @@ public class PlaylistService {
     }
 
     public Playlist createPlaylist(String userId, String playlistName, String description, boolean isPublic) {
-        SpotifyApi spotifyApi = ApiUtil.getSpotifyApi(userId);
+        SpotifyApi spotifyApi = getSpotifyApi(userId);
         try {
             var builder = spotifyApi
                     .createPlaylist(userId, playlistName)
@@ -96,9 +95,9 @@ public class PlaylistService {
     }
 
     public void addTracksToPlaylist(String userId, String playlistId, String[] trackUris) {
-        SpotifyApi spotifyApi = ApiUtil.getSpotifyApi(userId);
+        SpotifyApi spotifyApi = getSpotifyApi(userId);
 
-        List<String[]> trackUrisList = splitArray(trackUris, TRACK_URIS_CHUNK_SIZE);
+        List<String[]> trackUrisList = splitArray(trackUris);
 
         int position = 0;
         try {
@@ -117,13 +116,13 @@ public class PlaylistService {
         }
     }
 
-    public List<String[]> splitArray(String[] array, int chunkSize) {
-        int numOfChunks = (int) Math.ceil((double) array.length / chunkSize);
+    private List<String[]> splitArray(String[] array) {
+        int numOfChunks = (int) Math.ceil((double) array.length / PlaylistService.TRACK_URIS_CHUNK_SIZE);
         List<String[]> arrayOfArrays = new ArrayList<>(numOfChunks);
 
         for (int i = 0; i < numOfChunks; i++) {
-            int start = i * chunkSize;
-            int length = Math.min(array.length - start, chunkSize);
+            int start = i * PlaylistService.TRACK_URIS_CHUNK_SIZE;
+            int length = Math.min(array.length - start, PlaylistService.TRACK_URIS_CHUNK_SIZE);
 
             String[] temp = new String[length];
             System.arraycopy(array, start, temp, 0, length);

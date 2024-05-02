@@ -13,9 +13,9 @@ public class PlaylistController {
     private final PlaylistService playlistService;
 
     @GetMapping("/{playlistId}")
-    public Playlist getPlaylist(@PathVariable String playlistId) {
+    public Playlist getPlaylist(@PathVariable String playlistId, @RequestParam String userId) {
 
-        return playlistService.getPlaylist(playlistId);
+        return playlistService.getPlaylist(userId, playlistId);
     }
 
     @PostMapping("/")

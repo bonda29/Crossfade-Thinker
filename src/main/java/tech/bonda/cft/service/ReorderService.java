@@ -3,7 +3,6 @@ package tech.bonda.cft.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
-import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 
 import java.util.Comparator;
@@ -20,7 +19,7 @@ public class ReorderService {
     private final PlaylistService playlistService;
 
     public String orderByTempo(String playlistId, String userId) {
-        var playlistAnalysisDto = audioAnalysisService.getAudioAnalysisForTracks(playlistId);
+        var playlistAnalysisDto = audioAnalysisService.getAudioAnalysisForTracks(userId, playlistId);
 
         var playlist = playlistAnalysisDto.getPlaylist();
         Map<String, AudioAnalysis> audioAnalysisMap = playlistAnalysisDto.getAudioAnalysisMap();

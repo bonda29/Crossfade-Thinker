@@ -1,19 +1,15 @@
 package tech.bonda.cft.service;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import tech.bonda.cft.models.AudioAnalysisEntity;
 import tech.bonda.cft.models.payload.dto.PlaylistAnalysisDto;
 import tech.bonda.cft.repositories.AudioAnalysisEntityRepository;
-import tech.bonda.cft.service.security.AccessTokenService;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -30,28 +26,46 @@ import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
 @RequiredArgsConstructor
 public class AudioAnalysisService {
     private final AudioAnalysisEntityRepository audioAnalysisEntityRepository;
-    private final AccessTokenService accessTokenService;
     private final PlaylistService playlistService;
-    private final WebClient webClient;
 
 
-    public PlaylistAnalysisDto getAudioAnalysisForTracks(String playlistId) {
-        var playlist = playlistService.getPlaylist(playlistId);
+    public PlaylistAnalysisDto getAudioAnalysisForTracks(String userId, String playlistId) {
+        var playlist = playlistService.getPlaylist(userId, playlistId);
         List<String> trackIds = getTrackIds(playlist);
 
-        Map<String, AudioAnalysis> audioAnalysisMap = getAudioAnalysis(trackIds);
+        Map<String, AudioAnalysis> audioAnalysisMap = getAudioAnalysis(userId, trackIds);
 
         return new PlaylistAnalysisDto(playlist, audioAnalysisMap);
 
     }
 
-    public synchronized AudioAnalysis getAudioAnalysis(String trackId, boolean includeSegments) {
+    public Map<String, AudioAnalysis> getAudioAnalysis(String userId, List<String> trackIds) {
+        Map<String, AudioAnalysis> result;
+        try (ForkJoinPool customThreadPool = new ForkJoinPool(10)) { // Customize the level of parallelism
+            result = customThreadPool.submit(() ->
+                    trackIds.parallelStream()
+                            .collect(toConcurrentMap(
+                                    trackId -> trackId,
+                                    trackId -> getAudioAnalysis(userId, trackId, false),
+
+                                    // In case of key collision, keep the existing value
+                                    (existing, replacement) -> existing
+                            ))
+            ).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to get audio analysis for tracks", e);
+        }
+
+        return result;
+    }
+
+    public synchronized AudioAnalysis getAudioAnalysis(String userId, String trackId, boolean includeSegments) {
         var audioAnalysisEntity = audioAnalysisEntityRepository.findById(trackId);
         if (audioAnalysisEntity.isPresent()) {
             return new Gson().fromJson(audioAnalysisEntity.get().getAudioAnalysisJson(), AudioAnalysis.class);
         }
         try {
-            var analysis = getSpotifyApi().getAudioAnalysisForTrack(trackId)
+            var analysis = getSpotifyApi(userId).getAudioAnalysisForTrack(trackId)
                     .build()
                     .execute();
 
@@ -72,28 +86,6 @@ public class AudioAnalysisService {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException("Failed to clear segments field ", e);
         }
-    }
-
-    public Map<String, AudioAnalysis> getAudioAnalysis(List<String> trackIds) {
-        ForkJoinPool customThreadPool = new ForkJoinPool(10); // Customize the level of parallelism
-
-        Map<String, AudioAnalysis> result;
-        try {
-            result = customThreadPool.submit(() ->
-                    trackIds.parallelStream()
-                            .collect(toConcurrentMap(
-                                    trackId -> trackId,
-                                    trackId -> getAudioAnalysis(trackId, false),
-
-                                    // In case of key collision, keep the existing value
-                                    (existing, replacement) -> existing
-                            ))
-            ).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to get audio analysis for tracks", e);
-        }
-
-        return result;
     }
 
     private List<String> getTrackIds(Playlist playlist) {
