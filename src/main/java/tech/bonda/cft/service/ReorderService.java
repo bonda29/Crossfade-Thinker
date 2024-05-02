@@ -18,7 +18,7 @@ public class ReorderService {
     private final AudioAnalysisService audioAnalysisService;
     private final PlaylistService playlistService;
 
-    public String orderByTempo(String playlistId, String userId) {
+    public String orderByTempo(String userId, String playlistId) {
         var playlistAnalysisDto = audioAnalysisService.getAudioAnalysisForPlaylist(userId, playlistId);
 
         var playlist = playlistAnalysisDto.getPlaylist();
@@ -38,7 +38,10 @@ public class ReorderService {
                 .map(idToUriMap::get)
                 .toArray(String[]::new);
 
-        var newPlaylists = playlistService.createPlaylist(userId, playlist.getName() + " reordered", "Reordered by tempo", true);
+        var newPlaylists = playlistService.createPlaylist(userId,
+                playlist.getName() + " reordered",
+                "Reordered by tempo",
+                true);
         playlistService.addTracksToPlaylist(userId, newPlaylists.getId(), orderedTrackUris);
 
         return newPlaylists.getExternalUrls().getExternalUrls().get("spotify");
