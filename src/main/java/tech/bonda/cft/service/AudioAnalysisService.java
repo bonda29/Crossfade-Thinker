@@ -26,11 +26,12 @@ import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
 @RequiredArgsConstructor
 public class AudioAnalysisService {
     private final AudioAnalysisEntityRepository audioAnalysisEntityRepository;
-    private final PlaylistService playlistService;
+    private final PlaylistFacade playlistFacade;
 
 
     public PlaylistAnalysisDto getAudioAnalysisForPlaylist(String userId, String playlistId) {
-        var playlist = playlistService.getPlaylist(userId, playlistId);
+        Playlist playlist = playlistFacade.getPlaylist(userId, playlistId);
+
         List<String> trackIds = getTrackIds(playlist);
 
         Map<String, AudioAnalysis> audioAnalysisMap = getAudioAnalysis(userId, trackIds);
