@@ -16,10 +16,11 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-import static java.util.stream.Collectors.toConcurrentMap;
 import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
 
 @Service
@@ -28,43 +29,18 @@ public class AudioAnalysisService {
     private final AudioAnalysisEntityRepository audioAnalysisEntityRepository;
     private final PlaylistFacade playlistFacade;
 
-
     public PlaylistAnalysisDto getAudioAnalysisForPlaylist(String userId, String playlistId) {
         Playlist playlist = playlistFacade.getPlaylist(userId, playlistId);
 
         List<String> trackIds = getTrackIds(playlist);
 
-        Map<String, AudioAnalysis> audioAnalysisMap = getAudioAnalysis(userId, trackIds);
+        Map<String, AudioAnalysis> audioAnalysisMap = getAudioAnalysisForTracks(userId, trackIds);
 
         return new PlaylistAnalysisDto(playlist, audioAnalysisMap);
 
     }
 
-    public Map<String, AudioAnalysis> getAudioAnalysis(String userId, List<String> trackIds) {
-        Map<String, AudioAnalysis> result;
-        try (ForkJoinPool customThreadPool = new ForkJoinPool(10)) { // Customize the level of parallelism
-            result = customThreadPool.submit(() ->
-                    trackIds.parallelStream()
-                            .collect(toConcurrentMap(
-                                    trackId -> trackId,
-                                    trackId -> getAudioAnalysis(userId, trackId),
-
-                                    // In case of key collision, keep the existing value
-                                    (existing, replacement) -> existing
-                            ))
-            ).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to get audio analysis for tracks", e);
-        }
-
-        return result;
-    }
-
     public synchronized AudioAnalysis getAudioAnalysis(String userId, String trackId) {
-        var audioAnalysisEntity = audioAnalysisEntityRepository.findById(trackId);
-        if (audioAnalysisEntity.isPresent()) {
-            return new Gson().fromJson(audioAnalysisEntity.get().getAudioAnalysisJson(), AudioAnalysis.class);
-        }
         try {
             var analysis = getSpotifyApi(userId).getAudioAnalysisForTrack(trackId)
                     .build()
@@ -75,9 +51,6 @@ public class AudioAnalysisService {
             segmentsField.setAccessible(true);
             segmentsField.set(analysis, null);
 
-            AudioAnalysisEntity entity = new AudioAnalysisEntity(trackId, new Gson().toJson(analysis));
-            audioAnalysisEntityRepository.save(entity);
-
             return analysis;
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
@@ -86,6 +59,71 @@ public class AudioAnalysisService {
             throw new RuntimeException("Failed to clear segments field ", e);
         }
     }
+
+    private Map<String, AudioAnalysis> getAudioAnalysisForTracks(String userId, List<String> trackIds) {
+        // Retrieve all AudioAnalysisEntity objects from the database that have a track ID in the provided list
+        List<AudioAnalysisEntity> audioAnalysisEntities = audioAnalysisEntityRepository.findAllById(trackIds);
+
+        // Convert the retrieved AudioAnalysisEntity objects to AudioAnalysis objects
+        Map<String, AudioAnalysis> audioAnalysisMap = new ConcurrentHashMap<>();
+        Gson gson = new Gson();
+        for (AudioAnalysisEntity entity : audioAnalysisEntities) {
+            AudioAnalysis audioAnalysis = gson.fromJson(entity.getAudioAnalysisJson(), AudioAnalysis.class);
+            audioAnalysisMap.put(entity.getTrackId(), audioAnalysis);
+            trackIds.remove(entity.getTrackId());
+        }
+
+        // Get the audio analysis for the remaining tracks
+        for (String trackId : trackIds) {
+            AudioAnalysis audioAnalysis = getAudioAnalysis(userId, trackId);
+            audioAnalysisMap.put(trackId, audioAnalysis);
+
+            // Save the new AudioAnalysisEntity object to the database
+            AudioAnalysisEntity entity = new AudioAnalysisEntity(trackId, gson.toJson(audioAnalysis));
+            audioAnalysisEntityRepository.save(entity);
+        }
+
+        return audioAnalysisMap;
+    }
+
+/*
+    private Map<String, AudioAnalysis> getAudioAnalysisForTracks(String userId, List<String> trackIds) {
+        // Retrieve all AudioAnalysisEntity objects from the database that have a track ID in the provided list
+        List<AudioAnalysisEntity> audioAnalysisEntities = audioAnalysisEntityRepository.findAllById(trackIds);
+
+        // Convert the retrieved AudioAnalysisEntity objects to AudioAnalysis objects
+        Map<String, AudioAnalysis> audioAnalysisMap = new ConcurrentHashMap<>();
+        Gson gson = new Gson();
+        for (AudioAnalysisEntity entity : audioAnalysisEntities) {
+            AudioAnalysis audioAnalysis = gson.fromJson(entity.getAudioAnalysisJson(), AudioAnalysis.class);
+            audioAnalysisMap.put(entity.getTrackId(), audioAnalysis);
+            trackIds.remove(entity.getTrackId());
+        }
+
+        // Get the audio analysis for the remaining tracks
+        ExecutorService executor = Executors.newFixedThreadPool(10); // Adjust the thread pool size as needed
+        for (String trackId : trackIds) {
+            executor.submit(() -> {
+                AudioAnalysis audioAnalysis = getAudioAnalysis(userId, trackId);
+                audioAnalysisMap.put(trackId, audioAnalysis);
+
+                // Save the new AudioAnalysisEntity object to the database
+                AudioAnalysisEntity entity = new AudioAnalysisEntity(trackId, gson.toJson(audioAnalysis));
+                audioAnalysisEntityRepository.save(entity);
+            });
+        }
+
+        executor.shutdown();
+        try {
+            // Wait for all tasks to finish
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Thread execution was interrupted", e);
+        }
+
+        return audioAnalysisMap;
+    }
+*/
 
     private List<String> getTrackIds(Playlist playlist) {
         List<String> tracksIds = new ArrayList<>();

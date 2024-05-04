@@ -10,9 +10,16 @@ import java.io.IOException;
 
 import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
 
+/**
+ * Service for unfollowing (deleting) a Spotify playlist.
+ */
 @Service
 @RequiredArgsConstructor
 public class UnfollowPlaylistService {
+    /**
+     * @param userId     The Spotify user ID.
+     * @param playlistId The ID of the playlist to be unfollowed (deleted).
+     */
     public void deletePlaylist(String userId, String playlistId) {
         SpotifyApi spotifyApi = getSpotifyApi(userId);
 

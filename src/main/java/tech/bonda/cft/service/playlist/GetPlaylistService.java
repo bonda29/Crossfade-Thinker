@@ -17,11 +17,22 @@ import java.util.List;
 
 import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
 
+/**
+ * Service for retrieving detailed information about a Spotify playlist, including its tracks.
+ * Due to Spotify's API limitations, tracks are fetched separately and then set into the Playlist object.
+ */
 @Service
 @RequiredArgsConstructor
 public class GetPlaylistService {
-    private static final int TRACKS_LIMIT = 50;
+    private static final int TRACKS_LIMIT = 50; // Maximum number of tracks fetched per API call.
 
+    /**
+     * Retrieves a playlist by its ID, including all tracks within it.
+     *
+     * @param userId     The Spotify user ID of the requester.
+     * @param playlistId The ID of the playlist to retrieve.
+     * @return A Playlist object populated with its details and tracks.
+     */
     public Playlist getPlaylist(String userId, String playlistId) {
         SpotifyApi spotifyApi = getSpotifyApi(userId);
         final String fields = """
@@ -30,7 +41,7 @@ public class GetPlaylistService {
                     href, id, images(url),
                     name, owner(id), public,
                     snapshot_id, type, uri
-                """; //without tracks
+                """; // Excludes tracks to be fetched separately.
         try {
             Playlist playlist = spotifyApi
                     .getPlaylist(playlistId)
@@ -40,6 +51,7 @@ public class GetPlaylistService {
 
             PlaylistTrack[] trackArr = getPlaylistsItems(userId, playlistId);
 
+            // Reflectively set the tracks into the playlist due to SDK limitations.
             setPlaylistTracks(playlist, trackArr);
 
             return playlist;
