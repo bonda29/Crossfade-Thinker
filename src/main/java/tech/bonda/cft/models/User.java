@@ -21,7 +21,7 @@ public class User {
     private Integer totalFollowers;
 
     @ElementCollection
-    @Column(name = "image")
+    @Column(name = "image", length = 2048)
     @CollectionTable(name = "user_images", joinColumns = @JoinColumn(name = "owner_id"))
     private List<String> images = new ArrayList<>();
 
