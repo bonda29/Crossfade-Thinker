@@ -86,45 +86,6 @@ public class AudioAnalysisService {
         return audioAnalysisMap;
     }
 
-/*
-    private Map<String, AudioAnalysis> getAudioAnalysisForTracks(String userId, List<String> trackIds) {
-        // Retrieve all AudioAnalysisEntity objects from the database that have a track ID in the provided list
-        List<AudioAnalysisEntity> audioAnalysisEntities = audioAnalysisEntityRepository.findAllById(trackIds);
-
-        // Convert the retrieved AudioAnalysisEntity objects to AudioAnalysis objects
-        Map<String, AudioAnalysis> audioAnalysisMap = new ConcurrentHashMap<>();
-        Gson gson = new Gson();
-        for (AudioAnalysisEntity entity : audioAnalysisEntities) {
-            AudioAnalysis audioAnalysis = gson.fromJson(entity.getAudioAnalysisJson(), AudioAnalysis.class);
-            audioAnalysisMap.put(entity.getTrackId(), audioAnalysis);
-            trackIds.remove(entity.getTrackId());
-        }
-
-        // Get the audio analysis for the remaining tracks
-        ExecutorService executor = Executors.newFixedThreadPool(10); // Adjust the thread pool size as needed
-        for (String trackId : trackIds) {
-            executor.submit(() -> {
-                AudioAnalysis audioAnalysis = getAudioAnalysis(userId, trackId);
-                audioAnalysisMap.put(trackId, audioAnalysis);
-
-                // Save the new AudioAnalysisEntity object to the database
-                AudioAnalysisEntity entity = new AudioAnalysisEntity(trackId, gson.toJson(audioAnalysis));
-                audioAnalysisEntityRepository.save(entity);
-            });
-        }
-
-        executor.shutdown();
-        try {
-            // Wait for all tasks to finish
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Thread execution was interrupted", e);
-        }
-
-        return audioAnalysisMap;
-    }
-*/
-
     private List<String> getTrackIds(Playlist playlist) {
         List<String> tracksIds = new ArrayList<>();
         for (var track : playlist.getTracks().getItems()) {
