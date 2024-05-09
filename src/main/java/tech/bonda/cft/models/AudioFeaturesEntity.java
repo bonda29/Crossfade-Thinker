@@ -11,13 +11,13 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "audio_analysis")
-public class AudioAnalysisEntity {
+@Table(name = "audio_features")
+public class AudioFeaturesEntity {
     @Id
     @Column(name = "track_id")
     private String trackId;
 
     @Lob
-    @Column(name = "audio_analysis", columnDefinition = "LONGTEXT")
-    private String audioAnalysisJson;
+    @Column(name = "audio_features", columnDefinition = "LONGTEXT")
+    private String audioFeaturesJson;
 }

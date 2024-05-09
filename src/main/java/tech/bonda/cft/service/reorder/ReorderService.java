@@ -1,4 +1,4 @@
-package tech.bonda.cft.service;
+package tech.bonda.cft.service.reorder;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -6,6 +6,8 @@ import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import tech.bonda.cft.models.payload.request.PlaylistCreateDto;
+import tech.bonda.cft.service.analysis.AudioAnalysisService;
+import tech.bonda.cft.service.PlaylistFacade;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;

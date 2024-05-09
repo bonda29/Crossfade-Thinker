@@ -2,7 +2,7 @@ package tech.bonda.cft.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import tech.bonda.cft.service.ReorderService;
+import tech.bonda.cft.service.reorder.ReorderService;
 
 @RestController
 @RequiredArgsConstructor

@@ -1,4 +1,4 @@
-package tech.bonda.cft.service;
+package tech.bonda.cft.service.analysis;
 
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
@@ -10,18 +10,16 @@ import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import tech.bonda.cft.models.AudioAnalysisEntity;
 import tech.bonda.cft.models.payload.dto.PlaylistAnalysisDto;
 import tech.bonda.cft.repositories.AudioAnalysisEntityRepository;
+import tech.bonda.cft.service.PlaylistFacade;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static tech.bonda.cft.util.ApiUtil.getSpotifyApi;
+import static tech.bonda.cft.util.PlaylistUtil.getTrackIds;
 
 @Service
 @RequiredArgsConstructor
@@ -84,13 +82,5 @@ public class AudioAnalysisService {
         }
 
         return audioAnalysisMap;
-    }
-
-    private List<String> getTrackIds(Playlist playlist) {
-        List<String> tracksIds = new ArrayList<>();
-        for (var track : playlist.getTracks().getItems()) {
-            tracksIds.add(track.getTrack().getId());
-        }
-        return tracksIds;
     }
 }

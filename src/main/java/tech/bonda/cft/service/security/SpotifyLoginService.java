@@ -10,7 +10,7 @@ import se.michaelthelin.spotify.SpotifyHttpManager;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 import tech.bonda.cft.models.User;
-import tech.bonda.cft.service.UserService;
+import tech.bonda.cft.service.user.UserService;
 
 import java.io.IOException;
 import java.net.URI;

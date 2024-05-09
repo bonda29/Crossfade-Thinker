@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import se.michaelthelin.spotify.model_objects.miscellaneous.AudioAnalysis;
 import tech.bonda.cft.models.payload.dto.PlaylistAnalysisDto;
-import tech.bonda.cft.service.AudioAnalysisService;
+import tech.bonda.cft.service.analysis.AudioAnalysisService;
 
 @RestController
 @RequiredArgsConstructor

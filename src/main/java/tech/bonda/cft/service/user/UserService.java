@@ -1,4 +1,4 @@
-package tech.bonda.cft.service;
+package tech.bonda.cft.service.user;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.core5.http.ParseException;
